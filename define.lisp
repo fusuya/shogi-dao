@@ -39,6 +39,8 @@
 (defvar *ERY* 30)
 ;;探索深さの限界
 (defvar *DepthMax* 3)
+;;ある深さでの最善手順をしまう配列
+(defvar *Best* (make-array (list *depthmax* *depthmax*)))
 ;;指し手内容の構造体
 (defstruct Te
   From ;;どこから

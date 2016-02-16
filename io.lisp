@@ -1,4 +1,4 @@
-(defparameter *name1* '("P" "L" "N" "S" "G" "B" "R" "K" "p" "l" "n" "s" "g" "b" "r" "k"))
+(defparameter *name1* '(#\P #\L #\N #\S #\G #\B #\R #\K #\p #\l #\n #\s #\g #\b #\r #\k))
 
 (defun send_pv (turn maxdepth te1 score)
   (let ((koma 0))
@@ -75,37 +75,78 @@
     (cond
       ((null buf) 0)
       (t
-       (loop for i from 0 to (- (length buf) 1)
-	  do (let* ((te1 (make-Te))
-		    (sashite (nth i buf))
-		    (txt (coerce sashite 'list)))
-	       (cond
-		 ((= 42 (char-code (second txt)))
-		  (setf utu 1
-			from (+ (mod (position (first txt) *name1* :test #'equal) 8) 1)
-			to (+ (- 9 (- (char-code (third txt)) 49))
-			      (* (+ (- (char-code (fourth txt)) 97) 1) 10))))
-		 ((> (length sashite) 4)
-		  (setf nari 1
-			from (+ (- 9 (- (char-code (first txt)) 49))
-				(* (+ (- (char-code (second txt)) 97) 1) 10))
-			to (+ (- 9 (- (char-code (third txt)) 49))
-			      (* (+ (- (char-code (fourth txt)) 97) 1) 10))))
-		 (t (setf from (+ (- 9 (- (char-code (first txt)) 49))
-				  (* (+ (- (char-code (second txt)) 97) 1) 10))
-			  to (+ (- 9 (- (char-code (third txt)) 49))
-				(* (+ (- (char-code (fourth txt)) 97) 1) 10)))))
-	       (if (= utu 1)
-		   (setf (Te-koma te1) from)
-		   (setf (Te-koma te1) (aref *board* from)))
-	       (setf (Te-cap te1) (aref *board* to)
-		     (Te-from te1) from
-		     (Te-to te1) to
-		     (Te-pro te1) nari
-		     (Te-utu te1) utu)
-	       (Move turn te1)
-	       (setf turn (mod (+ turn 1) 2))))))
-      turn))
+       (dotimes (i (length buf))
+	 (let* ((te1 (make-Te))
+		(sashite (nth i buf))
+		(txt (coerce sashite 'list)))
+	   (cond
+	     ((= 42 (char-code (second txt))) ;; #\*だったら
+	      (setf utu 1
+		    from (+ (mod (position (first txt) *name1* :test #'equal) 8) 1)
+		    to (+ (- 9 (- (char-code (third txt)) 49))
+			  (* (+ (- (char-code (fourth txt)) 97) 1) 10))))
+	     ((> (length sashite) 4)
+	      (setf nari 1
+		    from (+ (- 9 (- (char-code (first txt)) 49))
+			    (* (+ (- (char-code (second txt)) 97) 1) 10))
+		    to (+ (- 9 (- (char-code (third txt)) 49))
+			  (* (+ (- (char-code (fourth txt)) 97) 1) 10))))
+	     (t (setf from (+ (- 9 (- (char-code (first txt)) 49))
+			      (* (+ (- (char-code (second txt)) 97) 1) 10))
+		      to (+ (- 9 (- (char-code (third txt)) 49))
+			    (* (+ (- (char-code (fourth txt)) 97) 1) 10)))))
+	   (if (= utu 1)
+	       (setf (Te-koma te1) from)
+	       (setf (Te-koma te1) (aref *board* from)))
+	   (setf (Te-cap te1) (aref *board* to)
+		 (Te-from te1) from
+		 (Te-to te1) to
+		 (Te-pro te1) nari
+		 (Te-utu te1) utu)
+	   (Move turn te1)
+	   (setf turn (mod (+ turn 1) 2))))))
+    turn))
+
+(defun test_make_moves_from_usi (buf turn)
+  (let ((from 0)
+	(to 0)
+	(nari 0)
+	(utu 0))
+    (cond
+      ((null buf) 0)
+      (t
+	 (let* ((te1 (make-Te))
+		(txt (coerce buf 'list)))
+	   (cond
+	     ((= 42 (char-code (second txt))) ;; #\*だったら
+	      (setf utu 1
+		    from (+ (mod (position (first txt) *name1* :test #'equal) 8) 1)
+		    to (+ (- 9 (- (char-code (third txt)) 49))
+			  (* (+ (- (char-code (fourth txt)) 97) 1) 10))))
+	     ((> (length buf) 4)
+	      (setf nari 1
+		    from (+ (- 9 (- (char-code (first txt)) 49))
+			    (* (+ (- (char-code (second txt)) 97) 1) 10))
+		    to (+ (- 9 (- (char-code (third txt)) 49))
+			  (* (+ (- (char-code (fourth txt)) 97) 1) 10))))
+	     (t (setf from (+ (- 9 (- (char-code (first txt)) 49))
+			      (* (+ (- (char-code (second txt)) 97) 1) 10))
+		      to (+ (- 9 (- (char-code (third txt)) 49))
+			    (* (+ (- (char-code (fourth txt)) 97) 1) 10)))))
+	   (if (= utu 1)
+	       (setf (Te-koma te1) from)
+	       (setf (Te-koma te1) (aref *board* from)))
+	   (setf (Te-cap te1) (aref *board* to)
+		 (Te-from te1) from
+		 (Te-to te1) to
+		 (Te-pro te1) nari
+		 (Te-utu te1) utu)
+	   (Move turn te1))))))
+
+(defun turn_set (buf)
+  (if (null buf)
+      0
+      (mod (length buf) 2)))
 
 (defun send_best (turn te1)
   (let ((koma 0))
@@ -113,19 +154,19 @@
     (if (= (Te-utu te1) 1)
 	(progn
 	 (case (Te-koma te1)
-	  (*SFU*
+	  (1
 	   (format t "P"))
-	  (*SKY*
+	  (2
 	   (format t "L"))
-	  (*SKE*
+	  (3
 	   (format t "N"))
-	  (*SGI*
+	  (4
 	   (format t "S"))
-	  (*SKI*
+	  (5
 	   (format t "G"))
-	  (*SHI*
+	  (7
 	   (format t "R"))
-	  (*SKA*
+	  (6
 	   (format t "B")))
 	 (format t "*"))
 	(progn
